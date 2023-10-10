@@ -1,23 +1,14 @@
 {
-  "name": "express-hello-world",
+  "name": "nodejs-proxy",
   "version": "1.0.0",
-  "description": "Express Hello World",
+  "description": "",
   "main": "server.js",
-  "repository": "https://github.com/fscarmen2/Argo-X-Choreo",
-  "author": "fscarmen",
-  "license": "MIT",
-  "private": false,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "http-proxy-middleware": "^2.0.6",
-    "request": "^2.88.2",
-    "basic-auth": "^2.0.1"
-  },
-  
-  "engines": {
-    "node": ">=14"
+    "http-proxy": "latest",
+    "ws": "^8.13.0"
   }
 }
