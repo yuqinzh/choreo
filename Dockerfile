@@ -8,8 +8,8 @@ EXPOSE 3000
 
 ENV PM2_HOME=/tmp
 
-RUN apt-get update &&\
-    apt-get install -y iproute2 vim netcat-openbsd &&\
+RUN apk update &&\
+    apk install -y iproute2 vim netcat-openbsd &&\
     npm install -r package.json &&\
     npm install -g pm2 &&\
     addgroup --gid 10001 choreo &&\
