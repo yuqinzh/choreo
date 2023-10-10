@@ -4,6 +4,8 @@ WORKDIR /home/choreouser
 
 COPY files/* /home/choreouser/
 
+EXPOSE 3000
+
 ENV PM2_HOME=/tmp
 
 RUN apt-get update &&\
