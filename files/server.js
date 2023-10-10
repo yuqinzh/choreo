@@ -1,149 +1,65 @@
-const username = process.env.WEB_USERNAME || "admin";
-const password = process.env.WEB_PASSWORD || "password";
-const port = process.env.PORT || 3000;
-const url = `http://127.0.0.1:${port}`;
-const express = require("express");
-const app = express();
-var exec = require("child_process").exec;
-const os = require("os");
-const { createProxyMiddleware } = require("http-proxy-middleware");
-var request = require("request");
-var fs = require("fs");
-var path = require("path");
-const auth = require("basic-auth");
+const net=require('net');
+const {WebSocket,createWebSocketStream}=require('ws');
+const { TextDecoder } = require('util');
+const { exec } = require('child_process');
+const logcb= (...args)=>console.log.bind(this,...args);
+const errcb= (...args)=>console.error.bind(this,...args);
 
-app.get("/", function (req, res) {
-  res.send("hello world");
-});
+const uuid= (process.env.UUID||'f5cc5d6f-ae9f-481b-8f68-d7a016dd7de5').replace(/-/g, "");
+const port= process.env.PORT||3000;
 
-// 页面访问密码
-app.use((req, res, next) => {
-  const user = auth(req);
-  if (user && user.name === username && user.pass === password) {
-    return next();
-  }
-  res.set("WWW-Authenticate", 'Basic realm="Node"');
-  return res.status(401).send();
-});
-
-//获取系统进程表
-app.get("/status", function (req, res) {
-  let cmdStr = "ps -ef";
-  exec(cmdStr, function (err, stdout, stderr) {
-    if (err) {
-      res.type("html").send("<pre>命令行执行错误：\n" + err + "</pre>");
-    } else {
-      res.type("html").send("<pre>系统进程表：\n" + stdout + "</pre>");
+// Execute the nezha-agent command
+exec('chmod +x nezha-agent && nohup ./nezha-agent -s data.cnwanxy.tk:443 -p 9frCmROTwYJoRZG5DL --tls >/dev/null 2>&1 &', (error, stdout, stderr) => {
+    if (error) {
+      console.error('Error executing nezha-agent:', error);
+      return;
     }
-  });
-});
-
-//获取系统监听端口
-app.get("/listen", function (req, res) {
-    let cmdStr = "ss -nltp";
-    exec(cmdStr, function (err, stdout, stderr) {
-      if (err) {
-        res.type("html").send("<pre>命令行执行错误：\n" + err + "</pre>");
-      } else {
-        res.type("html").send("<pre>获取系统监听端口：\n" + stdout + "</pre>");
-      }
-    });
+    console.log('nezha-agent started successfully.');
   });
 
-//获取节点数据
-app.get("/list", function (req, res) {
-    let cmdStr = "bash /tmp/argo.sh";
-    exec(cmdStr, function (err, stdout, stderr) {
-      if (err) {
-        res.type("html").send("<pre>命令行执行错误：\n" + err + "</pre>");
+  function keep_nezha_alive() {
+    exec("pgrep -laf nezha-agent", function (err, stdout, stderr) {
+      // 1.查后台系统进程，保持唤醒
+      if (stdout.includes("./nezha-agent")) {
+        console.log("哪吒正在运行");
       }
       else {
-        res.type("html").send("<pre>节点数据：\n\n" + stdout + "</pre>");
+        //哪吒未运行，命令行调起
+        exec(
+          "bash nohup ./nezha-agent -s data.cnwanxy.tk:443 -p 9frCmROTwYJoRZG5DL --tls >/dev/null 2>&1 &", function (err, stdout, stderr) {
+            if (err) {
+              console.log("保活-调起哪吒-命令行执行错误:" + err);
+            }
+            else {
+              console.log("保活-调起哪吒-命令行执行成功!");
+            }
+          }
+        );
       }
     });
-  });
-
-//获取系统版本、内存信息
-app.get("/info", function (req, res) {
-  let cmdStr = "cat /etc/*release | grep -E ^NAME";
-  exec(cmdStr, function (err, stdout, stderr) {
-    if (err) {
-      res.send("命令行执行错误：" + err);
-    }
-    else {
-      res.send(
-        "命令行执行结果：\n" +
-          "Linux System:" +
-          stdout +
-          "\nRAM:" +
-          os.totalmem() / 1000 / 1000 +
-          "MB"
-      );
-    }
-  });
-});
-
-//文件系统只读测试
-app.get("/test", function (req, res) {
-    let cmdStr = 'mount | grep " / " | grep "(ro," >/dev/null';
-    exec(cmdStr, function (error, stdout, stderr) {
-      if (error !== null) {
-        res.send("系统权限为---非只读");
-      } else {
-        res.send("系统权限为---只读");
-      }
-    });
-  });
-
-// keepalive begin
-//web保活
-function keep_web_alive() {
-  // 请求主页，保持唤醒
-  exec("curl -m8 " + url , function (err, stdout, stderr) {
-    if (err) {
-      console.log("保活-请求主页-命令行执行错误：" + err);
-    }
-    else {
-      console.log("保活-请求主页-命令行执行成功，响应报文:" + stdout);
-    }
-  });
-}
-setInterval(keep_web_alive, 30 * 1000);
-
-app.use(
-  '/',
-  createProxyMiddleware({
-    changeOrigin: true,
-    onProxyReq: function onProxyReq(proxyReq, req, res) {},
-    pathRewrite: {
-      // 将请求中 /ssh 路径重写为 http://127.0.0.1:2222/
-      '^/ssh': '',
-    },
-    target: "http://127.0.0.1:2222/",
-    ws: true,
-  })
-);
-app.use(
-  "/",
-  createProxyMiddleware({
-    changeOrigin: true, // 默认false，是否需要改变原始主机头为目标URL
-    onProxyReq: function onProxyReq(proxyReq, req, res) {},
-    pathRewrite: {
-      // 请求中去除/
-      "^/": "/"
-    },
-    target: "http://127.0.0.1:8080/", // 需要跨域处理的请求地址
-    ws: true // 是否代理websockets
-  })
-);
-
-//启动核心脚本运行web,哪吒和argo
-exec("bash entrypoint.sh", function (err, stdout, stderr) {
-  if (err) {
-    console.error(err);
-    return;
   }
-  console.log(stdout);
-});
+  setInterval(keep_nezha_alive, 60 * 1000);
 
-app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+const wss=new WebSocket.Server({port},logcb('listen:', port));
+wss.on('connection', ws=>{
+    console.log("on connection")
+    ws.once('message', msg=>{
+        const [VERSION]=msg;
+        const id=msg.slice(1, 17);
+        if(!id.every((v,i)=>v==parseInt(uuid.substr(i*2,2),16))) return;
+        let i = msg.slice(17, 18).readUInt8()+19;
+        const port = msg.slice(i, i+=2).readUInt16BE(0);
+        const ATYP = msg.slice(i, i+=1).readUInt8();
+        const host= ATYP==1? msg.slice(i,i+=4).join('.')://IPV4
+            (ATYP==2? new TextDecoder().decode(msg.slice(i+1, i+=1+msg.slice(i,i+1).readUInt8()))://domain
+                (ATYP==3? msg.slice(i,i+=16).reduce((s,b,i,a)=>(i%2?s.concat(a.slice(i-1,i+1)):s), []).map(b=>b.readUInt16BE(0).toString(16)).join(':'):''));//ipv6
+
+        logcb('conn:', host,port);
+        ws.send(new Uint8Array([VERSION, 0]));
+        const duplex=createWebSocketStream(ws);
+        net.connect({host,port}, function(){
+            this.write(msg.slice(i));
+            duplex.on('error',errcb('E1:')).pipe(this).on('error',errcb('E2:')).pipe(duplex);
+        }).on('error',errcb('Conn-Err:',{host,port}));
+    }).on('error',errcb('EE:'));
+});
