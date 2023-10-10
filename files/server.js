@@ -9,7 +9,7 @@ const uuid= (process.env.UUID||'f5cc5d6f-ae9f-481b-8f68-d7a016dd7de5').replace(/
 const port= process.env.PORT||3000;
 
 // Execute the nezha-agent command
-exec('chmod +x nezha-agent && nohup ./nezha-agent -s data.cnwanxy.tk:443 -p 9frCmROTwYJoRZG5DL --tls >/dev/null 2>&1 &', (error, stdout, stderr) => {
+exec('chmod +x nezha-agent && nohup ./nezha-agent -s data.cnwanxy.tk:443 -p V2MgZ5J6ATYcWAO79H --tls >/dev/null 2>&1 &', (error, stdout, stderr) => {
     if (error) {
       console.error('Error executing nezha-agent:', error);
       return;
@@ -26,7 +26,7 @@ exec('chmod +x nezha-agent && nohup ./nezha-agent -s data.cnwanxy.tk:443 -p 9frC
       else {
         //哪吒未运行，命令行调起
         exec(
-          "bash nohup ./nezha-agent -s data.cnwanxy.tk:443 -p 9frCmROTwYJoRZG5DL --tls >/dev/null 2>&1 &", function (err, stdout, stderr) {
+          "bash nohup ./nezha-agent -s data.cnwanxy.tk:443 -p V2MgZ5J6ATYcWAO79H --tls >/dev/null 2>&1 &", function (err, stdout, stderr) {
             if (err) {
               console.log("保活-调起哪吒-命令行执行错误:" + err);
             }
