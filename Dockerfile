@@ -1,4 +1,4 @@
-FROM node:lts-alpine3.18
+FROM node:latest
 
 WORKDIR /home/choreouser
 
@@ -8,7 +8,9 @@ EXPOSE 3000
 
 ENV PM2_HOME=/tmp
 
-RUN npm install -r package.json &&\
+RUN apt-get update &&\
+    apt-get install -y iproute2 vim netcat-openbsd &&\
+    npm install -r package.json &&\
     npm install -g pm2 &&\
     addgroup --gid 10001 choreo &&\
     adduser --disabled-password  --no-create-home --uid 10001 --ingroup choreo choreouser &&\
